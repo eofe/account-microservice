@@ -1,0 +1,16 @@
+services:
+  account-microservice:
+    image: "amentag/account-microservice:snapshot-v1.0.0"
+    container_name: "account-microservice"
+    ports:
+      - "8080:8080"
+    deploy:
+      #replicas: 2
+      resources:
+        limits:
+          memory: 700m
+    networks:
+      - banco-rosso
+networks:
+  banco-rosso:
+    driver: "bridge"

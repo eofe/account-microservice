@@ -2,6 +2,7 @@ package com.eofe.accountmicroservice.service;
 
 import com.eofe.accountmicroservice.dto.AccountDTO;
 import com.eofe.accountmicroservice.entity.Account;
+import com.eofe.accountmicroservice.exception.ResourceNotFoundException;
 import com.eofe.accountmicroservice.mapper.AccountMapper;
 import com.eofe.accountmicroservice.repository.AccountRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -10,14 +11,17 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.test.context.TestPropertySource;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
+@TestPropertySource(locations = {"classpath:application-info.yml", "classpath:application-error.yml"})
 class AccountServiceImplTest {
 
     @Mock
@@ -110,5 +114,95 @@ class AccountServiceImplTest {
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> accountService.getAccount(accountNumber));
         assertThat(exception.getMessage()).isEqualTo("Account with account number " + accountNumber + " does not exist.");
+    }
+
+
+    @Test
+    void shouldUpdateAccountSuccessfully() {
+
+        String accountNumber = "ACC1234567890";
+        AccountDTO inputDTO = new AccountDTO("Updated Name", "updatedEmail@hotmail.com", new BigDecimal(500));
+        var id = UUID.randomUUID();
+        Account existingAccount = new Account(id, "ACC1234567890","Original Name", "originalEmail@hotmail.com", new BigDecimal(300));
+        Account updatedAccount = new Account(id, "ACC1234567890","Updated Name", "updatedEmail@hotmail.com", new BigDecimal(500));
+        AccountDTO expectedDTO = new AccountDTO("Updated Name", "updatedEmail@hotmail.com", new BigDecimal(500));
+
+        when(accountRepository.findByAccountNumber(accountNumber)).thenReturn(Optional.of(existingAccount));
+        when(accountRepository.save(existingAccount)).thenReturn(updatedAccount);
+        when(accountMapper.toDTO(updatedAccount)).thenReturn(expectedDTO);
+
+        AccountDTO result = accountService.updateAccount(accountNumber, inputDTO);
+
+        assertThat(result).isEqualTo(expectedDTO);
+        verify(accountRepository).findByAccountNumber(accountNumber);
+        verify(accountRepository).save(existingAccount);
+        verify(accountMapper).toDTO(updatedAccount);
+    }
+
+    @Test
+    void shouldThrowExceptionWhenAccountNotFound() {
+
+        String accountNumber = "ACC1234567890";
+        AccountDTO inputDTO = new AccountDTO("Updated Name", "updatedEmail@hotmail.com", new BigDecimal(500));
+
+        when(accountRepository.findByAccountNumber(accountNumber)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> accountService.updateAccount(accountNumber, inputDTO))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Account not found for account number: " + accountNumber);
+
+        verify(accountRepository).findByAccountNumber(accountNumber);
+        verify(accountRepository, never()).save(any());
+        verify(accountMapper, never()).toDTO(any());
+    }
+
+    @Test
+    void shouldNotUpdateFieldsWhenNullInDTO() {
+
+        String accountNumber = "ACC1234567890";
+        var id = UUID.randomUUID();
+        AccountDTO inputDTO = new AccountDTO(null, null, null); // No updates provided
+        Account existingAccount = new Account(id, accountNumber,"Original Name", "originalEmail@hotmail.com", new BigDecimal(300));
+        AccountDTO expectedDTO = new AccountDTO(id, accountNumber, "Original Name", "originalEmail@hotmail.com", new BigDecimal(300));
+
+        when(accountRepository.findByAccountNumber(accountNumber)).thenReturn(Optional.of(existingAccount));
+        when(accountRepository.save(existingAccount)).thenReturn(existingAccount); // No changes
+        when(accountMapper.toDTO(existingAccount)).thenReturn(expectedDTO);
+
+        AccountDTO result = accountService.updateAccount(accountNumber, inputDTO);
+
+        assertThat(result).isEqualTo(expectedDTO);
+        verify(accountRepository).findByAccountNumber(accountNumber);
+        verify(accountRepository).save(existingAccount);
+        verify(accountMapper).toDTO(existingAccount);
+    }
+
+    @Test
+    void shouldDeleteAccountSuccessfully() {
+
+        String accountNumber = "ACC1234567890";
+        Account account = new Account(UUID.randomUUID(), "ACC5F76C17355", "James Brown", "james@brown.com", new BigDecimal(500));
+
+        when(accountRepository.findByAccountNumber(accountNumber)).thenReturn(Optional.of(account));
+
+        accountService.deleteAccount(accountNumber);
+
+        verify(accountRepository).findByAccountNumber(accountNumber);
+        verify(accountRepository).delete(account);
+    }
+
+    @Test
+    void shouldThrowExceptionWhenAccountToBeDeletedNotFound() {
+
+        String accountNumber = "ACC1234567111";
+
+        when(accountRepository.findByAccountNumber(accountNumber)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> accountService.deleteAccount(accountNumber))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Account not found for account number: " + accountNumber);
+
+        verify(accountRepository).findByAccountNumber(accountNumber);
+        verify(accountRepository, never()).delete(any());
     }
 }

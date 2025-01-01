@@ -11,6 +11,7 @@
 	<groupId>com.eofe</groupId>
 	<artifactId>account-microservice</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
+	<packaging>jar</packaging>
 	<name>account-microservice</name>
 	<description>Demo project for Spring Boot</description>
 	<url/>
@@ -58,7 +59,11 @@
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>2.7.0</version>
 		</dependency>
-        <dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+		<dependency>
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
             <version>24.1.0</version>
@@ -71,21 +76,13 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<image>
+						<name>amentag/${project.artifactId}:snapshot-v1.0.0</name>
+					</image>
+				</configuration>
 			</plugin>
 		</plugins>
-		<resources>
-			<!-- Main resources -->
-			<resource>
-				<directory>src/main/resources</directory>
-			</resource>
-		</resources>
-
-		<testResources>
-			<!-- Test resources -->
-			<testResource>
-				<directory>src/test/resources</directory>
-			</testResource>
-		</testResources>
 	</build>
 
 </project>

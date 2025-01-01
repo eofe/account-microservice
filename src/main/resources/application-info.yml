@@ -1,0 +1,11 @@
+info:
+  account:
+    create-request: "Received request to create account with name: {}"
+    get-request: "Received request to get account with account number: {}"
+    update-request: "Received request to update account with account number: {}"
+    delete-request: "Received request to delete account with account number: {}"
+    fetch: "Fetching account with account number: {}"
+    update: "Updating account with account number: {}"
+    update-success: "Successfully updated account with account number: {}"
+    delete: "Deleting account with account number: {}"
+    delete-success: "Successfully deleted account with account number: {}"

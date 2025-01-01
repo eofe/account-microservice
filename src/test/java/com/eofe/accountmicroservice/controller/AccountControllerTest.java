@@ -7,13 +7,16 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.jdbc.Sql;
 import static org.assertj.core.api.Assertions.assertThat;
 import java.math.BigDecimal;
+import java.util.Map;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Sql(scripts = "/data.sql")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@TestPropertySource(locations = {"classpath:application-info.yml", "classpath:application-error.yml"})
 class AccountControllerTest {
 
     @Autowired
@@ -171,5 +174,54 @@ class AccountControllerTest {
         assertThat(response.getBody()).contains("\"status\":404");
         assertThat(response.getBody()).contains("\"message\":\"Account with account number ACC0000000000 does not exist.\"");
         assertThat(response.getBody()).contains("\"timestamp\":");
+    }
+
+    @Test
+    void shouldUpdateAccountSuccessfully() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Type", "application/json");
+        var accountDTO = new AccountDTO("James Brown", "updatedEmail@hotmail.com", new BigDecimal(150));
+
+        HttpEntity<AccountDTO> request = new HttpEntity<>(accountDTO, headers);
+
+        var accountNumber = "ACC0CC6F17353";
+
+        ResponseEntity<String> response = restTemplate.exchange(BASE_URL + "/" + accountNumber,
+                HttpMethod.PUT,
+                request,
+                String.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenAccountToBeUpdatedIsNotFound() {
+        // Set up headers
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Type", "application/json");
+
+        // Prepare request data
+        var accountDTO = new AccountDTO("James Brown", "updatedEmail@hotmail.com", new BigDecimal(150));
+        HttpEntity<AccountDTO> request = new HttpEntity<>(accountDTO, headers);
+
+
+        var nonExistentAccountNumber = "ACCDD49517359";
+
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                BASE_URL + "/" + nonExistentAccountNumber,
+                HttpMethod.PUT,
+                request,
+                Map.class
+        );
+
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isNotNull();
+
+
+        Map<String, Object> responseBody = response.getBody();
+        assertThat(responseBody.get("status")).isEqualTo(404);
+        assertThat(responseBody.get("message")).isEqualTo("Account not found for account number: " + nonExistentAccountNumber);
+        assertThat(responseBody.get("timestamp")).isNotNull();
     }
 }
