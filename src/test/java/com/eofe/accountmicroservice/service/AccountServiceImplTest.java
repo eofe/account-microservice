@@ -5,13 +5,15 @@ import com.eofe.accountmicroservice.entity.Account;
 import com.eofe.accountmicroservice.exception.ResourceNotFoundException;
 import com.eofe.accountmicroservice.mapper.AccountMapper;
 import com.eofe.accountmicroservice.repository.AccountRepository;
+import com.eofe.accountmicroservice.util.ErrorMessage;
+import com.eofe.accountmicroservice.util.InfoMessage;
+import com.eofe.accountmicroservice.util.Validator;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.test.context.TestPropertySource;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -21,7 +23,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
-@TestPropertySource(locations = {"classpath:application-info.yml", "classpath:application-error.yml"})
 class AccountServiceImplTest {
 
     @Mock
@@ -29,6 +30,15 @@ class AccountServiceImplTest {
 
     @Mock
     private AccountMapper accountMapper;
+
+    @Mock
+    private Validator validator;
+
+    @Mock
+    private InfoMessage infoMessage;
+
+    @Mock
+    private ErrorMessage errorMessage;
 
     @InjectMocks
     private AccountServiceImpl accountService;
@@ -102,8 +112,15 @@ class AccountServiceImplTest {
 
     @Test
     void getAccount_shouldThrowIllegalArgumentException_whenAccountNumberIsBlank() {
+        // Arrange
+        try (var mockStatic = mockStatic(Validator.class)) {
+            // Mock the static method call
+            mockStatic.when(() -> Validator.isAccountNumberValid(anyString()))
+                    .thenThrow(new IllegalArgumentException("Account number is null or empty"));
 
-        assertThrows(IllegalArgumentException.class, () -> accountService.getAccount(""));
+            // Act & Assert
+            assertThrows(IllegalArgumentException.class, () -> accountService.getAccount(""));
+        }
     }
 
     @Test
@@ -111,6 +128,7 @@ class AccountServiceImplTest {
 
         String accountNumber = "ACC0CC6F17353";
         when(accountRepository.findByAccountNumber(accountNumber)).thenReturn(Optional.empty());
+        when(errorMessage.getNotExist()).thenReturn("Account with account number " + accountNumber + " does not exist.");
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> accountService.getAccount(accountNumber));
         assertThat(exception.getMessage()).isEqualTo("Account with account number " + accountNumber + " does not exist.");
@@ -146,6 +164,7 @@ class AccountServiceImplTest {
         AccountDTO inputDTO = new AccountDTO("Updated Name", "updatedEmail@hotmail.com", new BigDecimal(500));
 
         when(accountRepository.findByAccountNumber(accountNumber)).thenReturn(Optional.empty());
+        when(errorMessage.getNotFound()).thenReturn("Account not found for account number: " + accountNumber);
 
         assertThatThrownBy(() -> accountService.updateAccount(accountNumber, inputDTO))
                 .isInstanceOf(ResourceNotFoundException.class)
@@ -181,9 +200,10 @@ class AccountServiceImplTest {
     void shouldDeleteAccountSuccessfully() {
 
         String accountNumber = "ACC1234567890";
-        Account account = new Account(UUID.randomUUID(), "ACC5F76C17355", "James Brown", "james@brown.com", new BigDecimal(500));
+        Account account = new Account(UUID.randomUUID(), accountNumber, "James Brown", "james@brown.com", new BigDecimal(500));
 
         when(accountRepository.findByAccountNumber(accountNumber)).thenReturn(Optional.of(account));
+        when(infoMessage.getDeleteSuccess()).thenReturn("Successfully deleted account with account number: ACC1234567890");
 
         accountService.deleteAccount(accountNumber);
 
@@ -197,6 +217,7 @@ class AccountServiceImplTest {
         String accountNumber = "ACC1234567111";
 
         when(accountRepository.findByAccountNumber(accountNumber)).thenReturn(Optional.empty());
+        when(errorMessage.getNotFound()).thenReturn("Account not found for account number: " + accountNumber);
 
         assertThatThrownBy(() -> accountService.deleteAccount(accountNumber))
                 .isInstanceOf(ResourceNotFoundException.class)

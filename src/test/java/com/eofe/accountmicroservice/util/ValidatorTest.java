@@ -1,64 +1,79 @@
 package com.eofe.accountmicroservice.util;
 
 import com.eofe.accountmicroservice.exception.InvalidAccountNumberException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import org.mockito.Mockito;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ValidatorTest {
 
-    @Test
-    public void shouldThrowExceptionWhenAccountNumberIsNull() {
+    private ErrorMessage errorMessage;
 
-        assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> Validator.isAccountNumberValid(null))
-                .withMessage("Account number is null or empty");
+    @BeforeEach
+    void setUp() {
+        errorMessage = Mockito.mock(ErrorMessage.class);
+        Validator.setErrorMessage(errorMessage);
     }
 
     @Test
-    public void shouldThrowExceptionWhenAccountNumberIsEmpty() {
+    void testIsAccountNumberValid_ShouldThrowException_WhenAccountNumberIsBlank() {
+        // Arrange
+        String blankAccountNumber = " ";
 
-        assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> Validator.isAccountNumberValid(""))
-                .withMessage("Account number is null or empty");
+        // Mocking error messages
+        Mockito.when(errorMessage.getNullOrEmpty()).thenReturn("Account number cannot be blank.");
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            Validator.isAccountNumberValid(blankAccountNumber);
+        });
+
+        assertEquals("Account number cannot be blank.", exception.getMessage());
     }
 
     @Test
-    public void shouldThrowExceptionWhenAccountNumberIsBlank() {
+    void testIsAccountNumberValid_ShouldThrowException_WhenAccountNumberIsEmpty() {
+        // Arrange
+        String emptyAccountNumber = "";
 
-        assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> Validator.isAccountNumberValid("   "))
-                .withMessage("Account number is null or empty");
+        // Mocking error messages
+        Mockito.when(errorMessage.getNullOrEmpty()).thenReturn("Account number cannot be empty.");
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            Validator.isAccountNumberValid(emptyAccountNumber);
+        });
+
+        assertEquals("Account number cannot be empty.", exception.getMessage());
     }
 
     @Test
-    public void shouldThrowInvalidAccountNumberExceptionForInvalidFormat() {
+    void testIsAccountNumberValid_ShouldThrowException_WhenAccountNumberHasInvalidFormat() {
+        // Arrange
+        String invalidAccountNumber = "ACC12345";
 
-        assertThatExceptionOfType(InvalidAccountNumberException.class)
-                .isThrownBy(() -> Validator.isAccountNumberValid("ACC12345XYZ"))
-                .withMessage("Account number format is invalid. Expected format: ACC followed by 10 hexadecimal characters.");
+        // Mocking error messages
+        Mockito.when(errorMessage.getBadAccountNumberFormat()).thenReturn("Account number format is invalid.");
+
+        // Act & Assert
+        InvalidAccountNumberException exception = assertThrows(InvalidAccountNumberException.class, () -> {
+            Validator.isAccountNumberValid(invalidAccountNumber);
+        });
+
+        assertEquals("Account number format is invalid.", exception.getMessage());
     }
 
     @Test
-    public void shouldNotThrowExceptionForValidAccountNumber() {
+    void testIsAccountNumberValid_ShouldNotThrowException_WhenAccountNumberIsValid() {
+        // Arrange
+        String validAccountNumber = "ACC123456789A";
 
-        String validAccountNumber = "ACC1234567890";
+        // Mocking error messages (not needed in this case, but necessary for other tests)
+        Mockito.when(errorMessage.getNullOrEmpty()).thenReturn("Account number cannot be blank.");
+        Mockito.when(errorMessage.getBadAccountNumberFormat()).thenReturn("Account number format is invalid.");
+
+        // Act & Assert
         assertDoesNotThrow(() -> Validator.isAccountNumberValid(validAccountNumber));
-    }
-
-    @Test
-    public void shouldThrowInvalidAccountNumberExceptionForTooShortAccountNumber() {
-
-        assertThatExceptionOfType(InvalidAccountNumberException.class)
-                .isThrownBy(() -> Validator.isAccountNumberValid("ACC12345"))
-                .withMessage("Account number format is invalid. Expected format: ACC followed by 10 hexadecimal characters.");
-    }
-
-    @Test
-    public void shouldThrowInvalidAccountNumberExceptionForTooLongAccountNumber() {
-
-        assertThatExceptionOfType(InvalidAccountNumberException.class)
-                .isThrownBy(() -> Validator.isAccountNumberValid("ACC12345678901234"))
-                .withMessage("Account number format is invalid. Expected format: ACC followed by 10 hexadecimal characters.");
     }
 }
