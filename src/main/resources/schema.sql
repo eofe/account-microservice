@@ -1,5 +1,5 @@
 -- Table: ACCOUNTS---------------------------------------------------
-CREATE TABLE ACCOUNTS
+CREATE TABLE IF NOT EXISTS ACCOUNTS
 (
     ID             UUID PRIMARY KEY,
     VERSION        INT                 NOT NULL,

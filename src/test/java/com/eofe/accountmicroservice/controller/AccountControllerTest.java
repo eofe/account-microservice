@@ -1,10 +1,13 @@
 package com.eofe.accountmicroservice.controller;
 
 import com.eofe.accountmicroservice.dto.AccountDTO;
+import com.eofe.accountmicroservice.integration.BaseIntegrationTest;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.*;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
@@ -14,15 +17,18 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Sql(scripts = "/data.sql")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-@TestPropertySource(locations = {"classpath:application-info.yml", "classpath:application-error.yml"})
+@Sql(scripts = "/data.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 class AccountControllerTest {
 
-    @Autowired
-    TestRestTemplate restTemplate;
+    @LocalServerPort
+    private int port;
 
-    private final static String BASE_URL = "/api/v1/accounts";
+    @Autowired
+    private TestRestTemplate restTemplate;
+
+    private @NotNull String getUrl() {
+        return "http://localhost:" + port + "/api/v1/accounts";
+    }
 
     @Test
     void shouldCreateAccountSuccessfully() {
@@ -32,7 +38,7 @@ class AccountControllerTest {
         AccountDTO accountDTO = new AccountDTO("John Doe", "john.doe@example.com" ,new BigDecimal("100.00"));
         HttpEntity<AccountDTO> request = new HttpEntity<>(accountDTO, headers);
 
-        ResponseEntity<AccountDTO> response = restTemplate.postForEntity(BASE_URL, request, AccountDTO.class);
+        ResponseEntity<AccountDTO> response = restTemplate.postForEntity(getUrl(), request, AccountDTO.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(response.getBody()).isNotNull();
@@ -41,7 +47,7 @@ class AccountControllerTest {
         assertThat(response.getBody().getName()).isEqualTo(accountDTO.getName());
         assertThat(response.getBody().getEmail()).isEqualTo(accountDTO.getEmail());
         assertThat(response.getBody().getBalance()).isEqualByComparingTo(accountDTO.getBalance());
-     }
+    }
 
     @Test
     void shouldReturnBadRequestForInvalidEmail() {
@@ -51,7 +57,7 @@ class AccountControllerTest {
         AccountDTO invalidAccount = new AccountDTO("John Doe", "invalid-email", new BigDecimal("100.00"));
         HttpEntity<AccountDTO> request = new HttpEntity<>(invalidAccount, headers);
 
-        ResponseEntity<String> response = restTemplate.postForEntity(BASE_URL, request, String.class);
+        ResponseEntity<String> response = restTemplate.postForEntity(getUrl(), request, String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
 
@@ -68,7 +74,7 @@ class AccountControllerTest {
         AccountDTO blankEmailAccount = new AccountDTO("John Doe", "", new BigDecimal("100.00"));
         HttpEntity<AccountDTO> request = new HttpEntity<>(blankEmailAccount, headers);
 
-        ResponseEntity<String> response = restTemplate.postForEntity(BASE_URL, request, String.class);
+        ResponseEntity<String> response = restTemplate.postForEntity(getUrl(), request, String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
 
@@ -85,7 +91,7 @@ class AccountControllerTest {
         AccountDTO nullBalanceAccount = new AccountDTO("John Doe", "john.doe@example.com", null);
         HttpEntity<AccountDTO> request = new HttpEntity<>(nullBalanceAccount, headers);
 
-        ResponseEntity<String> response = restTemplate.postForEntity(BASE_URL, request, String.class);
+        ResponseEntity<String> response = restTemplate.postForEntity(getUrl(), request, String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
 
@@ -102,7 +108,7 @@ class AccountControllerTest {
         AccountDTO negativeBalanceAccount = new AccountDTO("John Doe", "john.doe@example.com", new BigDecimal("-1.00"));
         HttpEntity<AccountDTO> request = new HttpEntity<>(negativeBalanceAccount, headers);
 
-        ResponseEntity<String> response = restTemplate.postForEntity(BASE_URL, request, String.class);
+        ResponseEntity<String> response = restTemplate.postForEntity(getUrl(), request, String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
 
@@ -119,7 +125,7 @@ class AccountControllerTest {
         AccountDTO invalidAccount = new AccountDTO(null, null, null);
         HttpEntity<AccountDTO> request = new HttpEntity<>(invalidAccount, headers);
 
-        ResponseEntity<String> response = restTemplate.postForEntity(BASE_URL, request, String.class);
+        ResponseEntity<String> response = restTemplate.postForEntity(getUrl(), request, String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
 
@@ -137,22 +143,21 @@ class AccountControllerTest {
 
         assertThat(response.getBody()).contains("\"status\":400", "\"timestamp\":");
     }
-
     @Test
     void shouldGetAccountByAccountNumberSuccessfully() {
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/json");
 
         HttpEntity<String> request = new HttpEntity<>(null, headers);
-        ResponseEntity<String> response = restTemplate.exchange(BASE_URL + "/" + "ACC0CC6F17353", HttpMethod.GET, request, String.class);
+        ResponseEntity<String> response = restTemplate.exchange(getUrl() + "/" + "ACCF6C4117358", HttpMethod.GET, request, String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
 
-        assertThat(response.getBody()).contains("\"id\":\"0e6caa84-3e5c-4b4a-8026-86a1aeb7ef89\"");
-        assertThat(response.getBody()).contains("\"accountNumber\":\"ACC0CC6F17353\"");
-        assertThat(response.getBody()).contains("\"email\":\"john.doe@example.com\"");
-        assertThat(response.getBody()).contains("\"balance\":1000.00");
+        assertThat(response.getBody()).contains("\"id\":\"b71da99a-d1f4-40af-bea8-fdf04f5be75a\"");
+        assertThat(response.getBody()).contains("\"accountNumber\":\"ACCF6C4117358\"");
+        assertThat(response.getBody()).contains("\"email\":\"robert.brown@example.com\"");
+        assertThat(response.getBody()).contains("\"balance\":1500.00");
     }
 
     @Test
@@ -162,7 +167,7 @@ class AccountControllerTest {
 
         HttpEntity<String> request = new HttpEntity<>(null, headers);
         ResponseEntity<String> response = restTemplate.exchange(
-                BASE_URL + "/" + "ACC0000000000", // Non-existent account number
+                getUrl() + "/" + "ACC0000000000", // Non-existent account number
                 HttpMethod.GET,
                 request,
                 String.class
@@ -186,7 +191,7 @@ class AccountControllerTest {
 
         var accountNumber = "ACC0CC6F17353";
 
-        ResponseEntity<String> response = restTemplate.exchange(BASE_URL + "/" + accountNumber,
+        ResponseEntity<String> response = restTemplate.exchange(getUrl() + "/" + accountNumber,
                 HttpMethod.PUT,
                 request,
                 String.class);
@@ -208,7 +213,7 @@ class AccountControllerTest {
 
 
         ResponseEntity<Map> response = restTemplate.exchange(
-                BASE_URL + "/" + nonExistentAccountNumber,
+                getUrl() + "/" + nonExistentAccountNumber,
                 HttpMethod.PUT,
                 request,
                 Map.class

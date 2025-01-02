@@ -1,3 +1,4 @@
 INSERT INTO ACCOUNTS (ID, VERSION, CREATED_AT, UPDATED_AT, ACCOUNT_NUMBER, NAME, EMAIL, BALANCE)
 VALUES ('0e6caa84-3e5c-4b4a-8026-86a1aeb7ef89', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'ACC0CC6F17353', 'John Doe',
-        'john.doe@example.com', 1000.00);
+        'john.doe@example.com', 1000.00),
+       ('b71da99a-d1f4-40af-bea8-fdf04f5be75a', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'ACCF6C4117358', 'Robert Brown', 'robert.brown@example.com', 1500.00);

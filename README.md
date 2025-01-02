@@ -99,6 +99,11 @@ You can manually build the Docker image using:
 ```bash
 docker build -t account-microservice .
 ```
+You can also use Buildpacks to create the Docker image:
+
+```bash
+mvn spring-boot:build-image
+```
 
 ### Run the Docker container
 
