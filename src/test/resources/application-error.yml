@@ -1,8 +1,0 @@
-error:
-  account:
-    null-dto: "AccountDTO cannot be null"
-    not-exist: "Account with account number {} does not exist."
-    not-found: "Account not found for account number: {}"
-    resource-not-found: "Account not found for account number: {}"
-    null-or-empty: "Account number is null or empty"
-    bad-account-number-format: "Account number format is invalid. Expected format: ACC followed by 10 hexadecimal characters."
